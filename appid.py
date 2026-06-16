@@ -3,7 +3,7 @@ import sympy as sp
 import numpy as np
 import plotly.graph_objects as go
 
-# Configuración de la página
+# Configuración de la página web
 st.set_page_config(page_title="Módulo de Integrales Dobles", page_icon="∬", layout="wide")
 
 st.title("∬ Laboratorio de Integrales Dobles: Regiones Generales")
@@ -25,18 +25,17 @@ st.sidebar.markdown("**Instrucciones:** \nIngresa las curvas que delimitan la re
 calcular = st.sidebar.button("Calcular Región e Integrales", type="primary")
 
 # =========================================================================
-# LÓGICA ANALÍTICA Y GRÁFICA
+# LÓGICA ANALÍTICA Y RECONSTRUCCIÓN DE REGIONES
 # =========================================================================
 if calcular:
     try:
-        # Símbolos formales
+        # Símbolos formales algebraicos
         x, y = sp.symbols('x y')
         f_xy = sp.sympify(func_str)
         c1 = sp.sympify(eq1_str)
         c2 = sp.sympify(eq2_str)
 
         # 1. Hallar puntos de intersección analíticos en el eje X (para el Caso I)
-        # Suponemos ecuaciones de la forma y = g2(x) y y = g1(x)
         puntos_interseccion = sp.solve(sp.Eq(c1, c2), x)
         # Filtrar solo soluciones reales numéricas
         puntos_x = sorted([float(pt.evalf()) for pt in puntos_interseccion if pt.is_real])
@@ -44,7 +43,7 @@ if calcular:
         if len(puntos_x) < 2:
             st.error("❌ Las curvas ingresadas no se intersectan en al menos dos puntos reales para encerrar una región acotada de manera automática. Prueba con `x` y `x**2 / 2`.")
         else:
-            # Tomamos los dos puntos extremos principales de intersección
+            # Tomamos los dos puntos extremos principales de intersección en X
             ax_min, bx_max = puntos_x[0], puntos_x[-1]
             
             # Evaluar cuál es la función superior e inferior en el punto medio del intervalo
@@ -58,7 +57,6 @@ if calcular:
                 g2_sup, g1_inf = c2, c1
 
             # --- CÁLCULO DE LÍMITES PARA EL CASO II (BARRIDO HORIZONTAL) ---
-            # Despejamos x en función de y para ambas curvas
             try:
                 despeje_c1 = sp.solve(sp.Eq(y, c1), x)
                 despeje_c2 = sp.solve(sp.Eq(y, c2), x)
@@ -68,11 +66,11 @@ if calcular:
                 dy_max = max(float(g2_sup.subs(x, ax_min).evalf()), float(g2_sup.subs(x, bx_max).evalf()))
                 
                 y_medio_c2 = (cy_min + dy_max) / 2.0
-                # Seleccionar la rama adecuada que esté dentro del rango numérico
+                # Seleccionar las ramas adecuadas que estén dentro del rango numérico real
                 h_c1_candidates = [h for h in despeje_c1 if h.subs(y, y_medio_c2).is_real]
                 h_c2_candidates = [h for h in despeje_c2 if h.subs(y, y_medio_c2).is_real]
                 
-                # Evaluamos cuál curva está a la derecha (mayor x) en el punto medio del intervalo en Y
+                # Evaluamos cuál curva está a la derecha (mayor x) en el punto medio de Y
                 x_c1_eval = float(h_c1_candidates[0].subs(y, y_medio_c2).evalf()) if h_c1_candidates else x_medio
                 x_c2_eval = float(h_c2_candidates[0].subs(y, y_medio_c2).evalf()) if h_c2_candidates else x_medio
                 
@@ -87,17 +85,16 @@ if calcular:
                 caso_2_posible = False
 
             # =========================================================================
-            # PLANTEAMIENTO Y RESOLUCIÓN ALGEBRAICA DE INTEGRALES
+            # PLANTEAMIENTO Y RESOLUCIÓN DE INTEGRALES (RENDERIZADO LATEX)
             # =========================================================================
             st.header("1. Planteamiento Matemático de las Integrales Iteradas")
-            
             col_eq1, col_eq2 = st.columns(2)
             
             with col_eq1:
                 st.subheader("Caso I: Región Tipo I (Barrido Vertical)")
                 st.markdown("La región está acotada por valores constantes en $x$, mientras que $y$ varía entre dos funciones de $x$.")
                 
-                # Integrales simbólicas
+                # Resolución paso a paso con SymPy
                 integral_interna_y = sp.integrate(f_xy, (y, g1_inf, g2_sup))
                 resultado_final_y = sp.integrate(integral_interna_y, (x, ax_min, bx_max))
                 
@@ -120,12 +117,12 @@ if calcular:
             st.divider()
 
             # =========================================================================
-            # GENERACIÓN DE GRÁFICOS CON INDICADORES DE BARRIDO
+            # GENERACIÓN DE GRÁFICOS CON INDICADORES DE BARRIDO (COMPATIBILIDAD FIJADA)
             # =========================================================================
             st.header("2. Visualización Pedagógica del Sentido de Barrido")
             col_g1, col_g2 = st.columns(2)
 
-            # Preparación de vectores de muestreo para graficar curvas
+            # Preparación de vectores de muestreo geométrico
             x_vals = np.linspace(ax_min - 0.5, bx_max + 0.5, 200)
             x_region = np.linspace(ax_min, bx_max, 100)
             
@@ -135,24 +132,28 @@ if calcular:
             y_sup_reg = [float(g2_sup.subs(x, val).evalf()) for val in x_region]
             y_inf_reg = [float(g1_inf.subs(x, val).evalf()) for val in x_region]
 
+            # CONSOLIDACIÓN SEPARADA (Solución al SyntaxError anterior)
+            coordenadas_x_region = np.concatenate([x_region, x_region[::-1]])
+            coordenadas_y_region = np.concatenate([y_sup_reg, y_inf_reg[::-1]])
+
             # --- GRÁFICO CASO I: BARRIDO VERTICAL ---
             with col_g1:
                 st.subheader("Visualización del Caso I (Flechas Verticales)")
                 fig1 = go.Figure()
 
-                # Dibujar curvas fronteras
+                # Dibujar curvas fronteras límites
                 fig1.add_trace(go.Scatter(x=x_vals, y=y_sup_vals, mode='lines', line=dict(color='#2c3e50', width=2), name=f"y = {g2_sup}"))
                 fig1.add_trace(go.Scatter(x=x_vals, y=y_inf_vals, mode='lines', line=dict(color='#2c3e50', width=2, dash='dash'), name=f"y = {g1_inf}"))
                 
-                # Sombrear la región R entre las curvas
+                # Sombrear la región acotada
                 fig1.add_trace(go.Scatter(
-                    x=layout_x := np.concatenate([x_region, x_region[::-1]]),
-                    y=np.concatenate([y_sup_reg, y_inf_reg[::-1]]),
+                    x=coordenadas_x_region,
+                    y=coordenadas_y_region,
                     fill='toself', fillcolor='rgba(52, 152, 219, 0.2)',
                     line=dict(color='rgba(255,255,255,0)'), name='Región R', hoverinfo='none'
                 ))
 
-                # Agregar vectores/flechas que representen el barrido vertical (dy)
+                # Agregar los vectores indicadores del barrido vertical (dy)
                 pasos_x = np.linspace(ax_min + (bx_max-ax_min)*0.2, ax_min + (bx_max-ax_min)*0.8, 4)
                 for px in pasos_x:
                     y_i = float(g1_inf.subs(x, px).evalf())
@@ -174,18 +175,18 @@ if calcular:
                 if caso_2_posible:
                     fig2 = go.Figure()
 
-                    # Dibujar curvas fronteras
-                    fig2.add_trace(go.Scatter(x=x_vals, y=y_sup_vals, mode='lines', line=dict(color='#2c3e50', width=2), name='Frontera'))
-                    fig2.add_trace(go.Scatter(x=x_vals, y=y_inf_vals, mode='lines', line=dict(color='#2c3e50', width=2, dash='dash'), name='Frontera'))
+                    # Dibujar curvas fronteras límites
+                    fig2.add_trace(go.Scatter(x=x_vals, y=y_sup_vals, mode='lines', line=dict(color='#2c3e50', width=2)))
+                    fig2.add_trace(go.Scatter(x=x_vals, y=y_inf_vals, mode='lines', line=dict(color='#2c3e50', width=2, dash='dash')))
                     
-                    # Sombrear la región R
+                    # Sombrear la región acotada
                     fig2.add_trace(go.Scatter(
-                        x=layout_x, y=np.concatenate([y_sup_reg, y_inf_reg[::-1]]),
+                        x=coordenadas_x_region, y=coordenadas_y_region,
                         fill='toself', fillcolor='rgba(46, 204, 113, 0.2)',
                         line=dict(color='rgba(255,255,255,0)'), name='Región R', hoverinfo='none'
                     ))
 
-                    # Agregar vectores/flechas que representen el barrido horizontal (dx)
+                    # Agregar los vectores indicadores del barrido horizontal (dx)
                     pasos_y = np.linspace(cy_min + (dy_max-cy_min)*0.2, cy_min + (dy_max-cy_min)*0.8, 4)
                     for py in pasos_y:
                         try:
