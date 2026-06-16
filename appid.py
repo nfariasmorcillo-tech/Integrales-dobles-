@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 st.set_page_config(page_title="Módulo de Integrales Dobles", page_icon="∬", layout="wide")
 
 st.title("∬ Laboratorio de Integrales Dobles: Regiones Generales")
-st.markdown("Herramienta pedagógica para analizar regiones de integración $R$, determinar límites automáticamente y comparar el **Caso I (Barrido Vertical)** con el **Caso II (Barrido Horizontal)**.")
+st.markdown("Analiza regiones de integración $R$, determina límites automáticamente y compara el **Caso I (Barrido Vertical)** con el **Caso II (Barrido Horizontal)**.")
 
 # =========================================================================
 # BARRA LATERAL: INGRESO DE DATOS
